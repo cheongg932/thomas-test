@@ -32,11 +32,13 @@ Servers verified: admin `:5173`, API/public `:8000`, login OK, AI null-key hint 
 - [x] Extract helper: `scripts/extract_affincms_tables.php`
 - [ ] Load `affincms_legacy` DB from dump and run importer on this machine
 
-### Affin theme assets (2026-07-23)
+### Affin theme assets (2026-07-23 / 2026-07-28)
 
-- [x] Copy `themes/demo/public` CSS+JS into `apps/api/public/themes/demo`
-- [x] Public pages load theme CSS/JS (`docs/THEME_ASSETS.md`)
-- [x] GrapesJS canvas injects theme CSS for WYSIWYG preview
+- [x] Public shell loads Bootstrap/jQuery + all `themes/demo` CSS/JS (`page.blade.php`)
+- [x] `ThemeAssets` helper + `PublicPageController` pass `$themeCss` / `$themeJs`
+- [x] Docs: `pagebuilderv2-affin_bank_xuan/docs/THEME_ASSETS.md`
+- [ ] Copy real Affin `css/` + `js/` into `apps/api/public/themes/demo` (folder scaffold only in repo)
+- [ ] GrapesJS canvas injects theme CSS for WYSIWYG preview
 - [ ] Optional: register Affin PHPageBuilder blocks as GrapesJS blocks
 
 ### Not done yet (add slowly after presentation)

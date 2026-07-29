@@ -7,43 +7,99 @@ use Illuminate\Support\Facades\File;
 class ThemeAssets
 {
     /**
-     * Public URLs for CSS under public/themes/{theme}/css.
+     * CSS + JS public URLs for the active theme.
      *
+     * @return array{css: list<string>, js: list<string>, root: string|null}
+     */
+    public static function manifest(string $theme = 'demo'): array
+    {
+        $root = self::resolveThemeRoot($theme);
+
+        if ($root === null) {
+            return [
+                'css' => [],
+                'js' => [],
+                'root' => null,
+            ];
+        }
+
+        return [
+            'css' => self::urlsIn($root['absolute'].DIRECTORY_SEPARATOR.'css', $root['url'].'/css', 'css'),
+            'js' => self::urlsIn($root['absolute'].DIRECTORY_SEPARATOR.'js', $root['url'].'/js', 'js'),
+            'root' => $root['absolute'],
+        ];
+    }
+
+    /**
      * @return list<string>
      */
     public static function cssUrls(string $theme = 'demo'): array
     {
-        return self::assetUrls($theme, 'css', 'css');
+        return self::manifest($theme)['css'];
     }
 
     /**
-     * Public URLs for JS under public/themes/{theme}/js.
-     *
      * @return list<string>
      */
     public static function jsUrls(string $theme = 'demo'): array
     {
-        return self::assetUrls($theme, 'js', 'js');
+        return self::manifest($theme)['js'];
+    }
+
+    /**
+     * Resolve where the theme's css/js folders live under public/.
+     *
+     * Supported layouts (first match wins):
+     * 1) public/themes/demo/css + js          ← preferred
+     * 2) public/themes/demo/public/css + js   ← copied whole zip "public" folder
+     * 3) public/themes/demo/themes/demo/public/css + js  ← accidental nested copy
+     *
+     * @return array{absolute: string, url: string}|null
+     */
+    public static function resolveThemeRoot(string $theme = 'demo'): ?array
+    {
+        $candidates = [
+            [
+                'absolute' => public_path("themes/{$theme}"),
+                'url' => "themes/{$theme}",
+            ],
+            [
+                'absolute' => public_path("themes/{$theme}/public"),
+                'url' => "themes/{$theme}/public",
+            ],
+            [
+                'absolute' => public_path("themes/{$theme}/themes/{$theme}/public"),
+                'url' => "themes/{$theme}/themes/{$theme}/public",
+            ],
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (
+                is_dir($candidate['absolute'].DIRECTORY_SEPARATOR.'css')
+                || is_dir($candidate['absolute'].DIRECTORY_SEPARATOR.'js')
+            ) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
      * @return list<string>
      */
-    private static function assetUrls(string $theme, string $subdir, string $extension): array
+    private static function urlsIn(string $absoluteDir, string $urlPrefix, string $extension): array
     {
-        $dir = public_path("themes/{$theme}/{$subdir}");
-
-        if (! is_dir($dir)) {
+        if (! is_dir($absoluteDir)) {
             return [];
         }
 
-        $files = collect(File::files($dir))
+        $files = collect(File::files($absoluteDir))
             ->filter(fn ($file) => strtolower($file->getExtension()) === $extension)
             ->reject(fn ($file) => self::shouldSkip($file->getFilename()))
             ->map(fn ($file) => $file->getFilename())
             ->values();
 
-        // Prefer non-.min when both foo.js and foo.min.js exist.
         if ($extension === 'js') {
             $names = $files->all();
             $files = $files->reject(function (string $name) use ($names) {
@@ -57,7 +113,6 @@ class ThemeAssets
             })->values();
         }
 
-        // Load style.css first when present so base theme wins before components.
         $sorted = $files->sort(function (string $a, string $b) {
             if ($a === 'style.css') {
                 return -1;
@@ -76,7 +131,7 @@ class ThemeAssets
         })->values();
 
         return $sorted
-            ->map(fn (string $name) => asset("themes/{$theme}/{$subdir}/{$name}"))
+            ->map(fn (string $name) => asset(trim($urlPrefix, '/').'/'.$name))
             ->all();
     }
 

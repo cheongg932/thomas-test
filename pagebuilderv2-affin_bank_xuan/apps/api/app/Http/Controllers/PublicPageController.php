@@ -65,6 +65,7 @@ class PublicPageController extends Controller
         // Preview = draft working copy; Live = last published snapshot
         $html = $isPreview ? ($page->compiled_html ?: '') : ($page->liveHtml() ?: '');
         $css = $isPreview ? ($page->compiled_css ?: '') : ($page->liveCss() ?: '');
+        $theme = ThemeAssets::manifest('demo');
 
         return view('public.page', [
             'page' => $page,
@@ -73,8 +74,8 @@ class PublicPageController extends Controller
             'isPreview' => $isPreview,
             'renderHtml' => $html,
             'renderCss' => $css,
-            'themeCss' => ThemeAssets::cssUrls('demo'),
-            'themeJs' => ThemeAssets::jsUrls('demo'),
+            'themeCss' => $theme['css'],
+            'themeJs' => $theme['js'],
         ]);
     }
 }
